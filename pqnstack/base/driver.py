@@ -2,10 +2,11 @@
 # Public Quantum Network
 #
 # NCSA/Illinois Computes
-#
-#
+
 from abc import ABC, abstractmethod
 from typing import Dict
+from enum import Enum
+
 
 class DeviceDriver(ABC):
 
@@ -29,3 +30,10 @@ class DeviceDriver(ABC):
     @abstractmethod
     def info(self):
         pass
+
+
+class DeviceClass(Enum):
+    SENSOR = 1
+    MOTOR = 2
+    TEMPCTRL = 3
+    TIMESTMP = 4
