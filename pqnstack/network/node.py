@@ -13,6 +13,7 @@ class Node(NetworkElement):
     def __init__(self, specs: Dict):
         super().__init__(specs)
         self.drivers = {}
+        self.setup(specs)
 
     def exec(self):
         pass
@@ -33,7 +34,7 @@ class Node(NetworkElement):
         self.collect()
 
     @abstractmethod
-    def config(self, specs: Dict):
+    def setup(self, specs: Dict):
         pass
 
     @abstractmethod
@@ -46,9 +47,5 @@ class Node(NetworkElement):
 
     @abstractmethod
     def collect(self) -> Packet:
-        pass
-
-    @abstractmethod
-    def hw_init(self, specs: Dict):
         pass
 

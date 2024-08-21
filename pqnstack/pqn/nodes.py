@@ -5,16 +5,29 @@
 from typing import List, Dict
 from pqnstack.network.node import Node
 from pqnstack.network.packet import Packet
+from pqnstack.pqn.drivers.time import IDQTimeTagger
+from pqnstack.pqn.drivers.optics import WavePlate
+from pqnstack.base.errors import DriverNotFound
 
 
-class PQNNode(Node):
+class PQNQuantumNode(Node):
 
     def __init__(self, specs: Dict):
         # Initialize as much as we can from a generic node
         super().__init__(specs)
 
-        # Setup all device drivers
-        self.hw_init(specs)
+    def setup(self, specs: Dict):
+        # Initialize time tagger device
+        if 'time-tagger' not in specs['drivers'].keys():
+            raise DriverNotFound('IDQ Time Tagger')
+
+        self.drivers['time-tagger'] = IDQTimeTagger(specs['drivers']['time-tagger'])
+
+        # Initialize wave plate motor
+        if 'wave-plate' not in specs['drivers'].keys():
+            raise DriverNotFound('Wave plate')
+
+        self.drivers['wave-plate'] = WavePlate(specs['drivers']['wave-plate'])
 
     def call(self) -> List:
         # Call drivers in sequence
@@ -35,5 +48,4 @@ class PQNNode(Node):
     def collect(self) -> Packet:
         # Now, generate a packet we can send to the network
         pass
-
 

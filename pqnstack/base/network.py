@@ -2,8 +2,6 @@
 # Public Quantum Network
 #
 # NCSA/Illinois Computes
-#
-#
 from pqnstack.network.packet import Packet
 from abc import ABC, abstractmethod
 from typing import Dict
@@ -47,7 +45,7 @@ class NetworkElement(ABC):
             self.dispatch(packet)
 
     @abstractmethod
-    def config(self, specs: Dict):
+    def setup(self, specs: Dict):
         pass
 
     @abstractmethod
