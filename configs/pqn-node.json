@@ -1,0 +1,17 @@
+{
+  "name": "kwiat-uiuc",
+  "location": "Loomis/UIUC",
+  "addr": "0",
+  "drivers": [
+    {
+      "type": "DeviceClass.TIMETAGR",
+      "name": "Time tagger @ PQN",
+      "params" : {
+
+      },
+      "commands": {
+
+      }
+    }
+  ]
+}

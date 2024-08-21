@@ -13,6 +13,7 @@ class DeviceDriver(ABC):
     def __init__(self, specs: Dict):
         self.name = specs['name']
         self.desc = specs['desc']
+        self.dtype = specs['dtype']
         self.setup()
 
     @abstractmethod
@@ -36,4 +37,4 @@ class DeviceClass(Enum):
     SENSOR = 1
     MOTOR = 2
     TEMPCTRL = 3
-    TIMESTMP = 4
+    TIMETAGR = 4

@@ -13,12 +13,7 @@ class Node(NetworkElement):
 
     def __init__(self, specs: Dict):
         super().__init__()
-
-        self.drivers = {
-
-        }
-
-        self.hw_init()
+        self.drivers = {}
 
     def idle(self):
         pass
@@ -30,7 +25,16 @@ class Node(NetworkElement):
         pass
 
     def measure(self):
-        pass
+        # Ensure the execution context is appropriate and orchestrate
+        # the setup
+        #
+        # Output: list of actual data
+        self.call()
+
+        self.filter()
+
+        # Produce a packet
+        self.collect()
 
     @abstractmethod
     def call(self):
@@ -42,5 +46,9 @@ class Node(NetworkElement):
 
     @abstractmethod
     def collect(self) -> Packet:
+        pass
+
+    @abstractmethod
+    def hw_init(self, specs: Dict):
         pass
 
