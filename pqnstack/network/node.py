@@ -4,7 +4,6 @@
 # NCSA/Illinois Computes
 from abc import abstractmethod
 from pqnstack.base.network import NetworkElement
-from pqnstack.base.driver import DeviceClass
 from pqnstack.network.packet import Packet
 from typing import Dict
 
@@ -12,7 +11,7 @@ from typing import Dict
 class Node(NetworkElement):
 
     def __init__(self, specs: Dict):
-        super().__init__()
+        super().__init__(specs)
         self.drivers = {}
 
     def idle(self):
@@ -35,6 +34,10 @@ class Node(NetworkElement):
 
         # Produce a packet
         self.collect()
+
+    @abstractmethod
+    def config(self, specs: Dict):
+        pass
 
     @abstractmethod
     def call(self):

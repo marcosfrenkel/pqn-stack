@@ -4,18 +4,50 @@
 # NCSA/Illinois Computes
 #
 #
-import queue
+from pqnstack.network.packet import Packet
 from abc import ABC, abstractmethod
+from typing import Dict
+from enum import Enum
+import zmq
+
+
+class NetworkElementClass(Enum):
+    ROUTER = 0
+    NODE = 1
+    TELEMETRY = 2
 
 
 class NetworkElement(ABC):
 
-    def __init__(self):
-        # TODO: consider async message while processing
-        self.request_queue = queue.Queue()
+    def __init__(self, specs: Dict):
+        # Find my type
+        self.__class = specs['class']
+        # Routing must be taken care of for any network-enabled unit
+        self.__router_ip = specs['router-ip']
+        self.__router_port = specs['router-port']
+
+        # Setup 0MQ
+        context = zmq.Context()
+        self.__socket = context.socket(zmq.REP)
+
+        if self.__class == NetworkElementClass.ROUTER:
+            self.__socket.bind(f'tcp://*:{self.__router_port}')
+        else:
+            self.__socket.bind(f'tcp://{self.__router_ip}:{self.__router_port}')
+
+        # Call the overriden version of `config`
+        self.config(specs)
+
+        # After housekeeping is ready, go into idle mode
+        self.idle()
+
+    def idle(self):
+        while True:
+            packet = self.__socket.recv()
+            self.dispatch(packet)
 
     @abstractmethod
-    def idle(self):
+    def config(self, specs: Dict):
         pass
 
     @abstractmethod
@@ -27,5 +59,5 @@ class NetworkElement(ABC):
         pass
 
     @abstractmethod
-    def dispatch(self):
+    def dispatch(self, packet: Packet):
         pass
