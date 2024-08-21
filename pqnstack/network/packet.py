@@ -4,16 +4,20 @@
 # NCSA/Illinois Computes
 #
 #
+from dataclasses_json import dataclass_json
 from dataclasses import dataclass
+from typing import Tuple
 from enum import Enum
 
 
+@dataclass_json
 @dataclass
 class Packet:
     intent: str
     request: str
-    source: int
-    destination: int
+    source: Tuple[int, int]
+    destination: Tuple[int, int]
+    hops: int
     payload: object
 
     def signature(self):
@@ -25,9 +29,9 @@ class Packet:
 
 class PacketIntent(Enum):
     DATA = 1
-    CONTROL = 2
-    ROUTING = 3
+    CTRL = 2
+    RTNG = 3
 
 
 class PacketRequest(Enum):
-    MEASUREMENT = 1
+    MSR = 1

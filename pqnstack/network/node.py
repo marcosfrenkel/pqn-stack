@@ -14,9 +14,6 @@ class Node(NetworkElement):
         super().__init__(specs)
         self.drivers = {}
 
-    def idle(self):
-        pass
-
     def exec(self):
         pass
 

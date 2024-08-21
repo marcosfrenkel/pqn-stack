@@ -13,9 +13,12 @@ Packet structure is defined by the following fields:
 
 * intent: data carrying, control carrying, or routing
 * request: specific type of request for the specified intent
-* source: node from which the request originates
-* destination: node to which the response should be issued
+* source: `(network, node)` pair from which the request originates
+* destination: `(network, node)` pair to which the response should be issued
+* hops: non-negative integer indicating the maximum number a packet can be sent
 * payload: data carried by the packet
+
+When the number of hops reach zero, it cannot be further sent across the network.
 
 ## Operations
 
@@ -34,4 +37,4 @@ Packets are mainly data objects. However, two simultaneous access methods are of
 
 ## Notes
 
-1. The `ROUTING` intent will not be implemented for v1.0
+1. BGP-like inter-network routing will not be implemented for v1.0

@@ -20,8 +20,11 @@ class NetworkElementClass(Enum):
 class NetworkElement(ABC):
 
     def __init__(self, specs: Dict):
-        # Find my type
-        self.__class = specs['class']
+        self.__class = None
+
+        # Call the overridden version of `config` for hardware specifics
+        self.config(specs)
+
         # Routing must be taken care of for any network-enabled unit
         self.__router_ip = specs['router-ip']
         self.__router_port = specs['router-port']
@@ -35,15 +38,12 @@ class NetworkElement(ABC):
         else:
             self.__socket.bind(f'tcp://{self.__router_ip}:{self.__router_port}')
 
-        # Call the overriden version of `config`
-        self.config(specs)
-
-        # After housekeeping is ready, go into idle mode
+        # After housekeeping, go into idle mode
         self.idle()
 
     def idle(self):
         while True:
-            packet = self.__socket.recv()
+            packet = Packet.from_json(self.__socket.recv())
             self.dispatch(packet)
 
     @abstractmethod

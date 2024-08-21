@@ -2,7 +2,7 @@
 # Public Quantum Network
 #
 # NCSA/Illinois Computes
-from pqnstack.base.network import NetworkElement
+from pqnstack.base.network import NetworkElement, NetworkElementClass
 from pqnstack.network.packet import Packet
 from typing import Dict
 
@@ -13,7 +13,7 @@ class Router(NetworkElement):
         super().__init__(specs)
 
     def config(self, specs: Dict):
-        pass
+        self.__class = NetworkElementClass.ROUTER
 
     def exec(self):
         pass
@@ -21,6 +21,6 @@ class Router(NetworkElement):
     def stop(self):
         pass
 
-    def dispatch(self):
+    def dispatch(self, packet: Packet):
         pass
 
