@@ -13,23 +13,23 @@ class DeviceDriver(ABC):
     def __init__(self, specs: Dict):
         self.name = specs['name']
         self.desc = specs['desc']
-        self.dtype = specs['dtype']
-        self.setup()
+        self.dtype = DeviceClass[specs['dtype']]
+        self.setup(specs)
 
     @abstractmethod
-    def setup(self):
+    def setup(self, specs: Dict):
         pass
 
     @abstractmethod
-    def exec(self):
+    def exec(self, seq: str):
         pass
 
     @abstractmethod
-    def command(self):
+    def command(self, cmd: str):
         pass
 
     @abstractmethod
-    def info(self):
+    def info(self, attr: str):
         pass
 
 
