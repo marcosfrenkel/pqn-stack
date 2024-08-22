@@ -1,17 +1,23 @@
 {
-  "name": "kwiat-uiuc",
+  "name": "loomis",
   "location": "Loomis/UIUC",
   "addr": "0",
-  "drivers": [
-    {
-      "type": "DeviceClass.TIMETAGR",
-      "name": "Time tagger @ PQN",
-      "params" : {
+  "drivers": {
+    "time-tagger": {
+      "dtype": "TIMETAGR",
+      "name": "IDQTimeTagger",
+      "desc": "Time tagger @ Loomis",
+      "params": {
 
       },
-      "commands": {
-
-      }
+      "provides": [
+        "set_delay",
+        "single_counts",
+        "coincidence_counts",
+        "tsco_number",
+        "histogram",
+        "channel_acquis"
+      ]
     }
-  ]
+  }
 }

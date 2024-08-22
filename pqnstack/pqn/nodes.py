@@ -10,7 +10,7 @@ from pqnstack.pqn.drivers.optics import WavePlate
 from pqnstack.base.errors import DriverNotFound
 
 
-class PQNQuantumNode(Node):
+class QuantumNode(Node):
 
     def __init__(self, specs: Dict):
         # Initialize as much as we can from a generic node

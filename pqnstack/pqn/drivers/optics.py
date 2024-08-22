@@ -18,10 +18,3 @@ class WavePlate(DeviceDriver):
     def exec(self, seq: str):
         pass
 
-    def command(self, cmd: str):
-        pass
-
-    def info(self, attr: str):
-        pass
-
-
