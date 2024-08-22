@@ -7,7 +7,7 @@ project, scientific and engineering goals.
 
 * Support the operation of the Public Quantum Network by refining existing control software and a new user 
 interface that aligns with current project goals and future aspirations
-* Implement a software stack that has the potential to satisfy scientific needs across quantum networks more generally
+* Implement a software stack that has the potential to satisfy scientific needs across quantum networks more generally in the future
 
 ## Engineering goals
 
