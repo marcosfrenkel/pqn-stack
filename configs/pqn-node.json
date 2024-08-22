@@ -8,13 +8,18 @@
       "name": "IDQTimeTagger",
       "desc": "Time tagger @ Loomis",
       "params": {
-
+        "cmd_wait": 1,
+        "tsco_iters": 25,
+        "hist_channels": 5,
+        "hist_min_val": 0,
+        "hist_max_val": 100,
+        "hist_bin_width": 10
       },
       "provides": [
         "set_delay",
         "single_counts",
         "coincidence_counts",
-        "tsco_number",
+        "tsco_numbers",
         "histogram",
         "channel_acquis"
       ]

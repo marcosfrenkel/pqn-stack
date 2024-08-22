@@ -21,6 +21,9 @@ class DeviceDriver(ABC):
         self.provides = specs['provides']
         self.executable = {}
 
+        # Tunable device parameters across multiple experiments
+        self.params = specs['params']
+
         # Call the available implementation of `setup`
         self.setup(specs)
 
