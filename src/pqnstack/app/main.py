@@ -5,14 +5,12 @@ from typing import Annotated
 import httpx
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import status
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 app = FastAPI()
-
-# Constants
-HTTP_OK = 200
 
 
 async def get_http_client() -> AsyncGenerator[httpx.AsyncClient, None]:
@@ -49,8 +47,12 @@ async def chsh(basis: tuple[float, float], other_node_address: str, http_client:
 
             for i in range(2):
                 for perp in [False, True]:
-                    r = await http_client.get(f"http://{other_node_address}/chsh/set_basis?i={i}&perp={perp}")
-                    if r.status_code != HTTP_OK:
+                    r = await http_client.get(
+                        f"http://{other_node_address}/chsh/request-angle-by-basis?i={i}&perp={perp}"
+                    )
+
+                    # TODO: Handle other status codes
+                    if r.status_code != status.HTTP_200_OK:
                         logger.error("Failed to request follower: %s", r.text)
                         return {"error": "Failed to request follower"}
                     # count = local_instruments.measure(measurement_config)  # ruff: noqa: ERA001
@@ -66,8 +68,8 @@ async def chsh(basis: tuple[float, float], other_node_address: str, http_client:
     return sum(expectations)
 
 
-@app.get("/chsh/set_basis")
-async def request_basis(i: int, *, perp: bool) -> bool:
-    angle = state.chsh_basis[i] + 90 * perp
+@app.post("/chsh/request-angle-by-basis")
+async def request_angle_by_basis(index: int, *, perp: bool = False) -> bool:
+    angle = state.chsh_basis[index] + 90 * perp
     logger.info("moving waveplate", extra={"angle": angle})
     return True
