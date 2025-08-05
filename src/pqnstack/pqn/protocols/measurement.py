@@ -1,8 +1,8 @@
 from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class MeasurementConfig:
+class MeasurementConfig(BaseModel):
     """Remember to update query arguments in the API if you change this."""
 
     duration: int  # in seconds
