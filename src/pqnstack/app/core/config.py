@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+import asyncio
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -73,6 +74,7 @@ settings = get_settings()
 
 
 class NodeState(BaseModel):
+    incoming: bool = False
     chsh_request_basis: list[float] = [22.5, 67.5]
     # FIXME: Use enums for this
     qkd_basis_list: list[QKDEncodingBasis] = [
@@ -95,3 +97,4 @@ class NodeState(BaseModel):
 
 
 state = NodeState()
+state_change_event = asyncio.Event()
