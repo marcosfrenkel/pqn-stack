@@ -1,6 +1,6 @@
+import asyncio
 import logging
 from functools import lru_cache
-import asyncio
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -70,7 +70,6 @@ settings = get_settings()
 
 
 class NodeState(BaseModel):
-
     # FIXME: Make sure we are checking for the client_listening_for_follower_requests state everywhere.
     client_listening_for_follower_requests: bool = False
 
@@ -78,9 +77,9 @@ class NodeState(BaseModel):
     leading: bool = False
     followers_address: str | None = None
 
-
     # Follower's state
     following: bool = False
+    # Other node requested this node to follow it.
     following_requested: bool = False
     # User's response to the follow request. None if no response yet, True if accepted, False if rejected.
     following_requested_user_response: bool | None = None
@@ -110,5 +109,5 @@ class NodeState(BaseModel):
 
 
 state = NodeState()
-state_change_event = asyncio.Event()
+ask_user_for_follow_event = asyncio.Event()
 user_replied_event = asyncio.Event()
