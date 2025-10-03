@@ -13,6 +13,12 @@ router = APIRouter(prefix="/serial", tags=["measure"])
 
 
 def get_rotary_encoder() -> SerialRotaryEncoder:
+    if settings.rotary_encoder is None:
+        rotary_encoder = SerialRotaryEncoder(
+            label="rotary_encoder", address=settings.rotary_encoder_address, offset_degrees=0.0
+        )
+        settings.rotary_encoder = rotary_encoder
+
     return settings.rotary_encoder
 
 
