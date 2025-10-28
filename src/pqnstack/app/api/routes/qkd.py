@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import secrets
+import random
 from typing import TYPE_CHECKING
 from typing import cast
 
@@ -41,7 +43,7 @@ async def _qkd(
         )
 
     counts = []
-    for basis in state.qkd_basis_list:
+    for basis in state.qkd_leader_basis_list:
         r = await http_client.post(f"http://{follower_node_address}/qkd/single_bit")
 
         if r.status_code != status.HTTP_200_OK:
@@ -78,16 +80,19 @@ async def _qkd(
 
     outcome = []
     logger.debug(
-        "Going for qkd_basis_list: %s, qkd_bit_list: %s, counts: %s", state.qkd_basis_list, state.qkd_bit_list, counts
+        "Going for qkd_leader_basis_list: %s, qkd_bit_list: %s, counts: %s",
+        state.qkd_leader_basis_list,
+        state.qkd_bit_list,
+        counts,
     )
-    for basis, choice, count in zip(state.qkd_basis_list, state.qkd_bit_list, counts, strict=False):
+    for basis, choice, count in zip(state.qkd_leader_basis_list, state.qkd_bit_list, counts, strict=False):
         out = get_outcome(settings.bell_state.value, BasisBool[basis.name].value, choice, count)
         logger.debug(
             "Calculating outcome for basis: %s, choice: %s, count: %s, outcome: %s", basis.name, choice, count, out
         )
         outcome.append(out)
 
-    basis_list = [basis.name for basis in state.qkd_basis_list]
+    basis_list = [basis.name for basis in state.qkd_leader_basis_list]
 
     # FIXME: Send already binary basis instead of HV/AD.
     r = await http_client.post(f"http://{follower_node_address}/qkd/request_basis_list", json=basis_list)
@@ -115,7 +120,7 @@ async def qkd(
     timetagger_address: str | None = None,
 ) -> list[int]:
     """Perform a QKD protocol with the given follower node."""
-    if not state.qkd_basis_list:
+    if not state.qkd_leader_basis_list:
         logger.error("QKD basis list is empty")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -142,8 +147,18 @@ async def request_qkd_single_pass(state: StateDep) -> bool:
 
     logger.debug("Halfwaveplate device found: %s", hwp)
 
-    _bases = (QKDEncodingBasis.HV, QKDEncodingBasis.DA)
-    basis_choice = _bases[secrets.randbits(1)]  # FIXME: Make this real quantum random.
+    # Check if we have basis choices available
+    if state.qkd_single_bit_current_index >= len(state.qkd_follower_basis_list):
+        logger.error("No more basis choices available in follower basis list")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No more basis choices available in follower basis list",
+        )
+
+    # Get the basis choice from the follower basis list
+    basis_choice = state.qkd_follower_basis_list[state.qkd_single_bit_current_index]
+    state.qkd_single_bit_current_index += 1
+
     int_choice = secrets.randbits(1)  # FIXME: Make this real quantum random.
 
     state.qkd_request_basis_list.append(basis_choice)
@@ -178,7 +193,10 @@ def request_qkd_basis_list(leader_basis_list: list[str], state: StateDep) -> lis
 
 
 @router.get("/question_order")
-async def request_qkd_question_order(state: StateDep, http_client: ClientDep,) -> list[int]:
+async def request_qkd_question_order(
+    state: StateDep,
+    http_client: ClientDep,
+) -> list[int]:
     """
     Return the question order for QKD.
 
@@ -196,8 +214,10 @@ async def request_qkd_question_order(state: StateDep, http_client: ClientDep,) -
 
     if len(state.qkd_question_order) == 0:
         if state.leading and state.followers_address != "":
-            question_range = range(settings.qkd_settings.minimum_question_index, settings.qkd_settings.maximum_question_index + 1)
-            question_order = random.sample(list(question_range), settings.qkd_settings.bitstring_length)
+            question_range = range(
+                settings.qkd_settings.minimum_question_index, settings.qkd_settings.maximum_question_index + 1
+            )
+            question_order = random.sample(list(question_range), settings.qkd_settings.bitstring_length)  # just choosing question order, no need for secure secrets package.
             state.qkd_question_order = question_order
         elif state.leading and state.followers_address == "":
             logger.error("Leader node has no follower address set")
@@ -231,17 +251,61 @@ async def request_qkd_question_order(state: StateDep, http_client: ClientDep,) -
     return state.qkd_question_order
 
 
-def _submit_qkd_basis_list_leader(state: NodeState, http_client: httpx.Client, basis_list: list[QKDEncodingBasis]):
+@router.get("/is_follower_ready")
+async def is_follower_ready(state: StateDep) -> bool:
+    """Check if the follower node is ready for QKD.
+    Follower is ready when the state has the basis list with as many choices as the bitstring length.
+    """
+    if not state.following:
+        logger.error("Node is not a follower")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Node is not a follower",
+        )
+
+    return len(state.qkd_follower_basis_list) == settings.qkd_settings.bitstring_length
+
+
+async def _wait_for_follower_ready(state: NodeState, http_client: httpx.AsyncClient):
+    """Poll the follower until it's ready, checking every 0.5 seconds."""
+    while True:
+        try:
+            r = await http_client.get(f"http://{state.followers_address}/qkd/is_follower_ready")
+            if r.status_code == status.HTTP_200_OK:
+                is_ready = r.json()
+                if is_ready:
+                    logger.info("YAY FOLLOWER READY")
+                    break
+                else:
+                    logger.info("Tried checking if follower is ready, but it wasn't ready")
+            else:
+                logger.info("Tried checking if follower is ready, but received non-200 status code")
+        except Exception as e:
+            logger.info(f"Tried checking if follower is ready, but encountered error: {e}")
+
+        await asyncio.sleep(0.5)
+
+
+async def _submit_qkd_basis_list_leader(
+    state: NodeState, http_client: httpx.AsyncClient, basis_list: list[QKDEncodingBasis], timetagger_address: str
+):
     state.qkd_leader_basis_list = basis_list
+    await _wait_for_follower_ready(state, http_client)
+
+    ret = await _qkd(state.followers_address, http_client, state, timetagger_address)
+    print("Final QKD bits:", ret)
 
 
-
-def _submit_qkd_basis_list_follower(state: NodeState, http_client: httpx.Client, basis_list: list[QKDEncodingBasis]):
+async def _submit_qkd_basis_list_follower(
+    state: NodeState, http_client: httpx.Client, basis_list: list[QKDEncodingBasis]
+):
     state.qkd_follower_basis_list = basis_list
 
 
 @router.post("/submit_selection_and_start_qkd")
-def submit_qkd_selection_and_start_qkd(state: StateDep, http_client: ClientDep, basis_list: list[str]):
+async def submit_qkd_selection_and_start_qkd(
+    state: StateDep, http_client: ClientDep, basis_list: list[str], timetagger_address: str = ""
+):
     """GUI calls this function to submit the QKD basis selection and start the QKD protocol.
     This call is called by both leader and follower, depending on the node role, different actions are taken."""
 
@@ -262,9 +326,9 @@ def submit_qkd_selection_and_start_qkd(state: StateDep, http_client: ClientDep, 
     # Convert 'a' or 'b' strings to QKDEncodingBasis enum values
     qkd_basis_list = []
     for basis_str in basis_list:
-        if basis_str.lower() == 'a':
+        if basis_str.lower() == "a":
             qkd_basis_list.append(QKDEncodingBasis.HV)
-        elif basis_str.lower() == 'b':
+        elif basis_str.lower() == "b":
             qkd_basis_list.append(QKDEncodingBasis.DA)
         else:
             logger.error(f"Invalid basis string: {basis_str}. Expected 'a' or 'b'")
@@ -274,13 +338,15 @@ def submit_qkd_selection_and_start_qkd(state: StateDep, http_client: ClientDep, 
             )
 
     if state.leading:
-        ret = _submit_qkd_basis_list_leader(state, http_client, qkd_basis_list)
+        if timetagger_address == "":
+            logger.error("Leader must provide timetagger address to start QKD")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Leader must provide timetagger address to start QKD",
+            )
+        ret = await _submit_qkd_basis_list_leader(state, http_client, qkd_basis_list, timetagger_address)
         return ret
 
     if state.following:
-        ret = _submit_qkd_basis_list_follower(state, http_client, qkd_basis_list)
+        ret = await _submit_qkd_basis_list_follower(state, http_client, qkd_basis_list)
         return ret
-
-
-
-
