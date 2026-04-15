@@ -17,6 +17,14 @@ from pqnstack.pqn.protocols.measurement import MeasurementConfig
 logger = logging.getLogger(__name__)
 
 
+class DailyReportConfig(BaseModel):
+    slack_webhook_url: str
+    follower_node_address: str
+    api_url: str = "http://localhost:8000"
+    timetagger_address: str = "127.0.0.1:8000"
+    basis: list[float] = Field(default_factory=lambda: [0.0, 22.5])
+
+
 class CHSHSettings(BaseModel):
     # Specifies which half waveplate to use for the CHSH experiment. First value is the provider's name, second is the motor name.
     hwp: tuple[str, str] = ("", "")
@@ -47,7 +55,12 @@ class Settings(BaseSettings):
     rotary_encoder_address: str = "/dev/ttyACM0"
     virtual_rotator: bool = False  # If True, use terminal input instead of hardware rotary encoder
 
-    model_config = SettingsConfigDict(toml_file="./config.toml", env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        toml_file="./config.toml",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # Allow extra fields in config.toml (e.g., daily_report)
+    )
 
     @classmethod
     def settings_customise_sources(
@@ -102,11 +115,17 @@ class NodeState(BaseModel):
 
     # CHSH state
     chsh_request_basis: list[float] = [22.5, 67.5]
+    chsh_progress_current: int = 0  # Current iteration in CHSH measurement
+    chsh_progress_total: int = 16  # Total iterations (2 basis x 2 follower x 2 angles x 2 perp)
+    chsh_running: bool = False  # Whether CHSH measurement is currently running
 
     # QKD state
     # FIXME: At the moment the reset_coordination_state resets this, probably want to refactor that function out.
     qkd_question_order: list[int] = []  # Order of questions for QKD
     qkd_emoji_pick: str = ""  # Emoji chosen for QKD
+    qkd_progress_current: int = 0  # Current iteration in QKD measurement
+    qkd_progress_total: int = 11  # Total iterations (bitstring length)
+    qkd_running: bool = False  # Whether QKD measurement is currently running
     qkd_leader_basis_list: list[QKDEncodingBasis] = [
         QKDEncodingBasis.DA,
         QKDEncodingBasis.DA,
@@ -128,11 +147,19 @@ class NodeState(BaseModel):
     qkd_request_bit_list: list[int] = []
     qkd_n_matching_bits: int = -1  # Leaders populate this value after qkd is done. Same with the emoji
 
+    # RNG state
+    rng_progress_current: int = 0  # Current iteration in RNG fortune measurement
+    rng_progress_total: int = 0  # Total iterations (fortune_size)
+    rng_running: bool = False  # Whether RNG fortune measurement is currently running
+
 
 state = NodeState()
 ask_user_for_follow_event = asyncio.Event()
 user_replied_event = asyncio.Event()
 qkd_result_received_event = asyncio.Event()
+protocol_cancelled_event = asyncio.Event()
+chsh_progress_event = asyncio.Event()
+rng_progress_event = asyncio.Event()
 
 
 def get_state() -> NodeState:
